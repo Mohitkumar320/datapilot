@@ -1,0 +1,6 @@
+langchain
+langgraph
+groq
+python-dotenv
+pandas
+mysql-connector-python
