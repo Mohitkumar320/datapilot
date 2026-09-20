@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 import mysql.connector
+import pandas as pd
 
 load_dotenv()
 
@@ -16,8 +17,11 @@ def execute_sql(sql: str):
         cursor = conn.cursor()
         cursor.execute(sql)
         rows = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
         cursor.close()
         conn.close()
-        return {"success": True, "data": rows, "error": None}
+
+        df = pd.DataFrame(rows, columns=columns)
+        return {"success": True, "data": df, "error": None}
     except mysql.connector.Error as e:
         return {"success": False, "data": None, "error": str(e)}
