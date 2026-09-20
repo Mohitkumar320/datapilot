@@ -73,3 +73,21 @@ IMPORTANT: for histogram, scatter, and box chart types, the SQL must return raw 
     raw = response.choices[0].message.content.strip()
     raw = raw.replace("```json", "").replace("```", "").strip()
     return json.loads(raw)
+
+
+def explain_error(question: str, error_message: str) -> str:
+    prompt = f"""
+The user asked this question: {question}
+
+Behind the scenes, this technical error occurred: {error_message}
+
+Explain in one or two simple, plain-language sentences what went wrong,
+without technical jargon or error codes. Then suggest one concrete thing
+the user could try instead. Do not mention SQL, MySQL, matplotlib, or any
+internal implementation details.
+"""
+    response = client.chat.completions.create(
+        model="openai/gpt-oss-120b",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content.strip()
