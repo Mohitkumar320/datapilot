@@ -1,50 +1,41 @@
 from app.sql.schema import get_schema
-from app.sql.generator import generate_plan, explain_error
-from app.sql.executor import execute_sql
-from app.pandas_tools.charts import save_chart
+from app.agents.graph import build_graph
 
-def ask(question: str, schema: str, history: list):
-    plan = generate_plan(question, schema, history)
-    print("DEBUG PLAN:", plan)
+def ask(question: str, schema: str, history: list, graph):
+    initial_state = {
+        "question": question,
+        "schema": schema,
+        "history": history,
+        "plan": None,
+        "result": None,
+        "chart_path": None,
+        "message": None
+    }
 
-    sql = plan["sql"]
-    print("Generated SQL:\n", sql)
+    final_state = graph.invoke(initial_state)
 
-    if not sql:
-        print("\nI couldn't find relevant data in the database to answer that question. Could you rephrase, or ask about something the database actually tracks?")
-    else:
-        result = execute_sql(sql)
-        if result["success"]:
-            df = result["data"]
-            print("\nResults:")
-            print(df)
+    plan = final_state["plan"]
+    result = final_state["result"]
 
-            if plan["needs_chart"]:
-                try:
-                    chart_path = save_chart(
-                        df,
-                        x_col=plan["x_col"],
-                        y_col=plan["y_col"],
-                        chart_type=plan["chart_type"],
-                        title=plan.get("chart_title") or question,
-                        filename="latest_chart.png"
-                    )
-                    print("\nChart saved to:", chart_path)
-                except Exception as chart_err:
-                    friendly = explain_error(question, str(chart_err))
-                    print("\n", friendly)
-        else:
-            friendly = explain_error(question, result["error"])
-            print("\n", friendly)
+    print("Generated SQL:\n", plan["sql"])
+
+    if final_state["message"]:
+        print("\n", final_state["message"])
+    elif result and result["success"]:
+        print("\nResults:")
+        print(result["data"])
+        if final_state["chart_path"]:
+            print("\nChart saved to:", final_state["chart_path"])
 
     history.append({
         "question": question,
-        "sql": sql
+        "sql": plan["sql"]
     })
 
 if __name__ == "__main__":
     schema = get_schema()
     history = []
+    graph = build_graph()
     print("Ask questions about the database. Type 'exit' to quit.\n")
 
     while True:
@@ -52,4 +43,4 @@ if __name__ == "__main__":
         if question.lower() in ("exit", "quit"):
             print("Goodbye.")
             break
-        ask(question, schema, history)
+        ask(question, schema, history, graph)
