@@ -49,7 +49,9 @@ You are a data analysis assistant. Given this database schema:
 
 The user asked: {question}
 This MySQL server runs in ONLY_FULL_GROUP_BY mode: every column in the SELECT list must either appear in the GROUP BY clause or be wrapped in an aggregate function (COUNT, SUM, AVG, MAX, etc).
-Decide what is needed to answer this. Respond with ONLY a JSON object, no other text, in this exact format:
+Decide what is needed to answer this.
+If the question is gibberish, unrelated to this database, or too vague to determine what's being asked, set "sql" to null and needs_chart to false rather than guessing.
+Respond with ONLY a JSON object, no other text, in this exact format:
 {{
   "sql": "the MySQL query to answer this",
   "needs_chart": true or false,

@@ -1,7 +1,11 @@
-from app.sql.schema import get_schema
-from app.agents.graph import build_graph
+# app/main.py
 
-def ask(question: str, schema: str, history: list, graph):
+from app.sql.schema import get_schema
+from app.pandas_tools.loader import load_csv, get_dataframe_schema
+from app.agents.graph import build_graph, build_csv_graph
+
+
+def ask(question: str, schema: str, history: list, graph, dataframe=None):
     initial_state = {
         "question": question,
         "schema": schema,
@@ -9,15 +13,14 @@ def ask(question: str, schema: str, history: list, graph):
         "plan": None,
         "result": None,
         "chart_path": None,
-        "message": None
+        "message": None,
+        "dataframe": dataframe
     }
 
     final_state = graph.invoke(initial_state)
 
     plan = final_state["plan"]
     result = final_state["result"]
-
-    print("Generated SQL:\n", plan["sql"])
 
     if final_state["message"]:
         print("\n", final_state["message"])
@@ -29,18 +32,36 @@ def ask(question: str, schema: str, history: list, graph):
 
     history.append({
         "question": question,
-        "sql": plan["sql"]
+        "sql": plan.get("sql"),
+        "operation": plan.get("operation")
     })
 
+
 if __name__ == "__main__":
-    schema = get_schema()
+    mode = input("Use (1) Database or (2) CSV file? Enter 1 or 2: ").strip()
+
     history = []
-    graph = build_graph()
-    print("Ask questions about the database. Type 'exit' to quit.\n")
+
+    if mode == "2":
+        file_path = input("Enter path to your CSV file: ").strip()
+        load_result = load_csv(file_path)
+        if not load_result["success"]:
+            print("Failed to load CSV:", load_result["error"])
+            exit()
+        dataframe = load_result["data"]
+        schema = get_dataframe_schema(dataframe)
+        graph = build_csv_graph()
+        
+    else:
+        dataframe = None
+        schema = get_schema()
+        graph = build_graph()
+
+    print("Ask questions about your data. Type 'exit' to quit.\n")
 
     while True:
         question = input("\nYour question: ")
         if question.lower() in ("exit", "quit"):
             print("Goodbye.")
             break
-        ask(question, schema, history, graph)
+        ask(question, schema, history, graph, dataframe)
