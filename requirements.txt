@@ -5,3 +5,5 @@ python-dotenv
 pandas
 mysql-connector-python
 matplotlib
+langsmith
+langchain-groq

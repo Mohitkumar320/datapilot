@@ -1,12 +1,14 @@
 import os
 import json
 from dotenv import load_dotenv
-from groq import Groq
+from langchain_groq import ChatGroq
+from langsmith import traceable
 
 load_dotenv()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+llm = ChatGroq(model="openai/gpt-oss-120b", api_key=os.getenv("GROQ_API_KEY"))
 
 
+@traceable
 def generate_pandas_plan(question: str, schema: str, history: list = None) -> dict:
     history_text = ""
     if history:
@@ -49,10 +51,7 @@ Operation meanings:
 Only set needs_chart to true if the user explicitly asks for a chart, graph, plot, or visualization.
 The x_col and y_col values must exactly match column names in the schema above.
 """
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-120b",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    raw = response.choices[0].message.content.strip()
+    response = llm.invoke(prompt)
+    raw = response.content.strip()
     raw = raw.replace("```json", "").replace("```", "").strip()
     return json.loads(raw)

@@ -1,11 +1,13 @@
 import os
 import json
 from dotenv import load_dotenv
-from groq import Groq
+from langchain_groq import ChatGroq
+from langsmith import traceable
 
 load_dotenv()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+llm = ChatGroq(model="openai/gpt-oss-120b", api_key=os.getenv("GROQ_API_KEY"))
 
+@traceable
 def generate_sql(question: str, schema: str, history: list = None) -> str:
     history_text = ""
     if history:
@@ -27,14 +29,12 @@ use the previous SQL/context to understand what it refers to.
 
 Return ONLY the SQL query, nothing else. No explanation, no markdown formatting.
 """
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-120b",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    sql = response.choices[0].message.content.strip()
+    response = llm.invoke(prompt)
+    sql = response.content.strip()
     sql = sql.replace("```sql", "").replace("```", "").strip()
     return sql
 
+@traceable
 def generate_plan(question: str, schema: str, history: list = None) -> dict:
     history_text = ""
     if history:
@@ -68,15 +68,13 @@ The x_col and y_col values must exactly match column names/aliases used in your 
 
 IMPORTANT: for histogram, scatter, and box chart types, the SQL must return raw individual rows (e.g. one row per film with its length), NOT pre-aggregated/grouped counts — the chart itself needs to compute the distribution from raw values.
 """
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-120b",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    raw = response.choices[0].message.content.strip()
+    response = llm.invoke(prompt)
+    raw = response.content.strip()
     raw = raw.replace("```json", "").replace("```", "").strip()
     return json.loads(raw)
 
 
+@traceable
 def explain_error(question: str, error_message: str) -> str:
     prompt = f"""
 The user asked this question: {question}
@@ -88,8 +86,5 @@ without technical jargon or error codes. Then suggest one concrete thing
 the user could try instead. Do not mention SQL, MySQL, matplotlib, or any
 internal implementation details.
 """
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-120b",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response.choices[0].message.content.strip()
+    response = llm.invoke(prompt)
+    return response.content.strip()
