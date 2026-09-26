@@ -32,11 +32,10 @@ def ask(question: str, schema: str, history: list, graph, dataframe=None):
 
     history.append({
         "question": question,
-        "sql": plan.get("sql"),
-        "operation": plan.get("operation")
+        "steps": plan.get("steps"),
+        "data": result["data"] if result and result["success"] else None
     })
-
-
+   
 if __name__ == "__main__":
     mode = input("Use (1) Database or (2) CSV file? Enter 1 or 2: ").strip()
 
