@@ -7,3 +7,6 @@ mysql-connector-python
 matplotlib
 langsmith
 langchain-groq
+fastapi
+uvicorn
+python-multipart

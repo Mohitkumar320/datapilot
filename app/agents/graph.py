@@ -17,6 +17,7 @@ class AgentState(TypedDict):
     chart_path: Optional[str]
     message: Optional[str]
     dataframe: Optional[pd.DataFrame]
+    db_config: Optional[dict]
 
 
 def plan_node(state: AgentState) -> AgentState:
@@ -32,7 +33,7 @@ def sql_node(state: AgentState) -> AgentState:
         state["message"] = "I couldn't find relevant data in the database to answer that question."
         return state
 
-    result = execute_sql(sql)
+    result = execute_sql(sql, state["db_config"])
     state["result"] = result
 
     if not result["success"]:

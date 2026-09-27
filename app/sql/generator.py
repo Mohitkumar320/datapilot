@@ -13,8 +13,8 @@ def generate_sql(question: str, schema: str, history: list = None) -> str:
     if history:
         history_text = "\n\nPrevious questions and answers in this conversation:\n"
         for turn in history:
-            history_text += f"Q: {turn['question']}\nSQL used: {turn['sql']}\n"
-
+            history_text += f"Q: {turn['question']}\nSQL used: {turn.get('sql')}\n"
+    
     prompt = f"""
 You are a SQL expert. Given this database schema:
 {schema}
@@ -40,8 +40,7 @@ def generate_plan(question: str, schema: str, history: list = None) -> dict:
     if history:
         history_text = "\n\nPrevious questions and answers in this conversation:\n"
         for turn in history:
-            history_text += f"Q: {turn['question']}\nSQL used: {turn['sql']}\n"
-
+            history_text += f"Q: {turn['question']}\nSQL used: {turn.get('sql')}\n"
     prompt = f"""
 You are a data analysis assistant. Given this database schema:
 {schema}

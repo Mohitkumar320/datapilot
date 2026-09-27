@@ -6,14 +6,14 @@ from decimal import Decimal
 
 load_dotenv()
 
-def execute_sql(sql: str):
+def execute_sql(sql: str, db_config: dict):
     try:
         conn = mysql.connector.connect(
-            host="127.0.0.1",
-            port=3306,
-            user="root",
-            password=os.getenv("MYSQL_PASSWORD"),
-            database="sakila"
+            host=db_config["host"],
+            port=db_config["port"],
+            user=db_config["user"],
+            password=db_config["password"],
+            database=db_config["database"]
         )
         cursor = conn.cursor()
         cursor.execute(sql)

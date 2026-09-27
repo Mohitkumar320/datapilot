@@ -1,11 +1,16 @@
 # app/main.py
 
+import os
+from dotenv import load_dotenv
+
 from app.sql.schema import get_schema
 from app.pandas_tools.loader import load_csv, get_dataframe_schema
 from app.agents.graph import build_graph, build_csv_graph
 
+load_dotenv()
 
-def ask(question: str, schema: str, history: list, graph, dataframe=None):
+
+def ask(question: str, schema: str, history: list, graph, dataframe=None, db_config=None):
     initial_state = {
         "question": question,
         "schema": schema,
@@ -14,7 +19,8 @@ def ask(question: str, schema: str, history: list, graph, dataframe=None):
         "result": None,
         "chart_path": None,
         "message": None,
-        "dataframe": dataframe
+        "dataframe": dataframe,
+        "db_config": db_config
     }
 
     final_state = graph.invoke(initial_state)
@@ -24,6 +30,8 @@ def ask(question: str, schema: str, history: list, graph, dataframe=None):
 
     if final_state["message"]:
         print("\n", final_state["message"])
+        if final_state["chart_path"]:
+            print("\nChart saved to:", final_state["chart_path"])
     elif result and result["success"]:
         print("\nResults:")
         print(result["data"])
@@ -33,9 +41,13 @@ def ask(question: str, schema: str, history: list, graph, dataframe=None):
     history.append({
         "question": question,
         "steps": plan.get("steps"),
-        "data": result["data"] if result and result["success"] else None
+        "sql": plan.get("sql"),
+        "data": result["data"] if result and result["success"] else None,
+        "chart_path": final_state["chart_path"],
+        "message": final_state["message"]
     })
-   
+
+
 if __name__ == "__main__":
     mode = input("Use (1) Database or (2) CSV file? Enter 1 or 2: ").strip()
 
@@ -50,10 +62,18 @@ if __name__ == "__main__":
         dataframe = load_result["data"]
         schema = get_dataframe_schema(dataframe)
         graph = build_csv_graph()
-        
+        db_config = None
+
     else:
         dataframe = None
-        schema = get_schema()
+        db_config = {
+            "host": "127.0.0.1",
+            "port": 3306,
+            "user": "root",
+            "password": os.getenv("MYSQL_PASSWORD"),
+            "database": "sakila"
+        }
+        schema = get_schema(db_config)
         graph = build_graph()
 
     print("Ask questions about your data. Type 'exit' to quit.\n")
@@ -63,4 +83,4 @@ if __name__ == "__main__":
         if question.lower() in ("exit", "quit"):
             print("Goodbye.")
             break
-        ask(question, schema, history, graph, dataframe)
+        ask(question, schema, history, graph, dataframe, db_config)
