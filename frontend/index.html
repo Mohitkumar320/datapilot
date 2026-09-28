@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DataPilot</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #1a1a26;
+    color: #e8e8ec;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Sidebar */
+  #sidebar {
+    width: 240px;
+    background: #16161f;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 16px;
+  }
+  .logo {
+    font-size: 20px;
+    font-weight: 700;
+    color: #6b78d6;
+    margin-bottom: 4px;
+  }
+  .tagline {
+    font-size: 12px;
+    color: #7a7a8c;
+    margin-bottom: 20px;
+  }
+  #session-status {
+    background: #23233240;
+    border: 1px solid #2a2a3a;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 13px;
+    color: #a0a0b0;
+    margin-bottom: 12px;
+  }
+  #new-session-btn {
+    width: 100%;
+    margin-bottom: 16px;
+  }
+  #history-list {
+    flex: 1;
+    overflow-y: auto;
+    font-size: 13px;
+  }
+  .history-item {
+    padding: 8px 10px;
+    border-radius: 6px;
+    color: #9a9ab0;
+    cursor: pointer;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .history-item:hover { background: #23233a; }
+
+  /* Main panel */
+  #main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+
+  /* Setup overlay */
+  #setup-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1a1a26;
+  }
+  .setup-card {
+    background: #20202e;
+    border: 1px solid #2a2a3a;
+    border-radius: 14px;
+    padding: 28px;
+    width: 380px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+  }
+  .setup-card h2 { margin-top: 0; font-size: 18px; }
+
+  button {
+    background: #5c6bcf;
+    color: white;
+    border: none;
+    padding: 9px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  button:hover { background: #6f7de0; }
+  button.inactive { background: #2a2a3a; color: #9a9ab0; }
+
+  input[type="text"], input[type="password"], input[type="file"] {
+    background: #16161f;
+    color: #e8e8ec;
+    border: 1px solid #33334a;
+    border-radius: 8px;
+    padding: 9px 12px;
+    margin: 5px 0;
+    width: 100%;
+    font-size: 14px;
+  }
+  input:focus { outline: none; border-color: #5c6bcf; }
+
+  #chat-column {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+#greeting {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7a7a8c;
+  font-size: 20px;
+}
+#messages {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 20px max(20px, calc((100% - 700px) / 2));
+    scrollbar-width: thin;
+    scrollbar-color: #33334a transparent;
+  }
+    #messages > * { flex-shrink: 0; }
+  .msg { margin: 10px 0; font-size: 15px; line-height: 1.6; }
+  .msg.user {
+    align-self: flex-end;
+    background: #2a2a3a;
+    padding: 10px 16px;
+    border-radius: 18px;
+    max-width: 80%;
+  }
+  .msg.answer { color: #e8e8ec; }
+  .table-wrap {
+    overflow: auto;
+    max-height: 320px;
+    border: 1px solid #2a2a3a;
+    border-radius: 10px;
+    margin-top: 6px;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th {
+    position: sticky;
+    top: 0;
+    background: #20202e;
+    text-align: left;
+    padding: 8px 12px;
+    color: #9a9ab0;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  td { padding: 8px 12px; border-top: 1px solid #2a2a3a; white-space: nowrap; }
+  .table-note { padding: 8px 12px; font-size: 12px; color: #7a7a8c; }
+  #loading-indicator {
+    display: none;
+    width: 100%;
+    max-width: 740px;
+    margin: 0 auto;
+    padding: 6px 20px;
+    color: #7a7a8c;
+    font-size: 13px;
+  }
+  #loading-indicator span {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: 5px;
+    border-radius: 50%;
+    background: #7a7a8c;
+    animation: blink 1.2s infinite ease-in-out;
+  }
+  #loading-indicator span:nth-child(2) { animation-delay: 0.2s; }
+  #loading-indicator span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink {
+    0%, 80%, 100% { opacity: 0.25; }
+    40% { opacity: 1; }
+  }
+#chart-img {
+  max-width: 100%;
+  border-radius: 10px;
+  margin-top: 8px;
+  display: block;
+}
+#chart-wrapper { margin-top: 6px; }
+#download-chart-btn {
+  margin-top: 6px;
+  font-size: 12px;
+  padding: 5px 10px;
+  background: #2a2a3a;
+}
+#input-row {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    max-width: 740px;
+    margin: 12px auto 20px;
+    padding: 0 20px;
+  }
+  #question-input { flex: 1; }
+     .input-pill {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #20202e;
+    border: 1px solid #33334a;
+    border-radius: 28px;
+    padding: 8px 10px;
+    transition: border-color 0.15s;
+  }
+  .input-pill:focus-within { border-color: #5c6bcf; }
+  .input-pill #question-input {
+    flex: 1;
+    width: auto;
+    background: transparent;
+    border: none;
+    margin: 0;
+    padding: 8px 6px;
+    font-size: 15px;
+  }
+  .input-pill button {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    padding: 0;
+    margin: 0;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  #switch-source-btn { background: transparent; color: #9a9ab0; }
+  #switch-source-btn:hover { background: #2a2a3a; }
+  #ask-btn { background: #5c6bcf; }
+  #question-input:placeholder-shown + #ask-btn { opacity: 0.35; cursor: default; }
+
+  /* Scrollbar styling (Chrome/Edge/Safari) */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #33334a; border-radius: 8px; }
+  ::-webkit-scrollbar-thumb:hover { background: #45456a; }
+
+</style>
+</head>
+<body>
+
+  <div id="sidebar">
+    <div class="logo">DataPilot</div>
+    <div class="tagline">AI Data Analysis Agent</div>
+    <div id="session-status">No session yet</div>
+    <button id="new-session-btn">+ New Session</button>
+    <div id="history-list"></div>
+  </div>
+
+  <div id="main">
+
+    <div id="setup-overlay">
+      <div class="setup-card">
+        <h2>Connect Your Data</h2>
+        <div>
+          <button id="tab-csv">Upload CSV</button>
+          <button id="tab-db" class="inactive">Connect Database</button>
+        </div>
+
+        <div id="csv-panel" style="margin-top:14px;">
+          <input type="file" id="csv-file" accept=".csv">
+          <button id="upload-btn">Upload</button>
+        </div>
+
+        <div id="db-panel" style="display:none; margin-top:14px;">
+          <input type="text" id="db-host" placeholder="Host">
+          <input type="text" id="db-port" placeholder="Port">
+          <input type="text" id="db-user" placeholder="User">
+          <input type="password" id="db-pass" placeholder="Password">
+          <input type="text" id="db-name" placeholder="Database">
+          <button id="connect-btn">Connect</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="chat-column" style="display:none;">
+      <div id="greeting">Ready when you are.</div>
+      <div id="messages"></div>
+            <div id="loading-indicator"><span></span><span></span><span></span></div>
+            <div id="input-row">
+        <div class="input-pill">
+          <button id="switch-source-btn" title="Change data source">+</button>
+          <input type="text" id="question-input" placeholder="Ask anything">
+          <button id="ask-btn" title="Send">↑</button>
+        </div>
+      </div>
+  </div>
+
+<script src="app.js"></script>
+</body>
+</html>

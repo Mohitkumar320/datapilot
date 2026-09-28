@@ -12,6 +12,9 @@ from app.main import ask as run_ask
 
 app = FastAPI()
 
+from fastapi.staticfiles import StaticFiles
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
 sessions: dict[str, dict] = {}
 
 UPLOAD_DIR = "uploads"
@@ -37,8 +40,10 @@ def health():
     return {"status": "ok"}
 
 
+from fastapi import Form
+
 @app.post("/upload-csv")
-def upload_csv(session_id: str, file: UploadFile = File(...)):
+def upload_csv(session_id: str = Form(...), file: UploadFile = File(...)):
     save_path = os.path.join(UPLOAD_DIR, f"{session_id}.csv")
 
     with open(save_path, "wb") as f:
