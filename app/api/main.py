@@ -1,6 +1,9 @@
 import shutil
 import os
 
+import pandas as pd
+
+from app.pandas_tools.profiler import profile_dataframe
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -65,8 +68,12 @@ def upload_csv(session_id: str = Form(...), file: UploadFile = File(...)):
         "history": []
     }
 
-    return {"session_id": session_id, "message": "CSV loaded", "rows": len(dataframe)}
-
+    return {
+        "session_id": session_id,
+        "message": "CSV loaded",
+        "rows": len(dataframe),
+        "profile": profile_dataframe(dataframe),
+    }
 
 @app.post("/connect-db")
 def connect_db(req: DBConnectRequest):
@@ -115,8 +122,10 @@ def ask_endpoint(req: AskRequest):
     last = session["history"][-1]
 
     data = last["data"]
-    data_records = data.to_dict(orient="records") if data is not None else None
-
+    if isinstance(data, pd.DataFrame):
+        data_records = data.to_dict(orient="records")
+    else:
+        data_records = data
     return {
         "session_id": req.session_id,
         "question": last["question"],

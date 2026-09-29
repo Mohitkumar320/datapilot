@@ -22,9 +22,11 @@ document.getElementById("upload-btn").onclick = async () => {
   formData.append("session_id", sessionId);
 
   const res = await fetch("/upload-csv", { method: "POST", body: formData });
-  if (res.ok) {
+   if (res.ok) {
+    const data = await res.json();
     updateSessionStatus(`CSV: ${file.name}`);
     showChatUI();
+    if (data.profile) renderProfile(data.profile);
   } else {
     alert("Upload failed");
   }
@@ -121,6 +123,10 @@ function renderAnswer(result) {
   div.className = "msg answer";
 
   let data = result.data;
+    if (data && typeof data === "object" && Array.isArray(data.columns) && typeof data.rows === "number") {
+    renderProfile(data);
+    return;
+  }
   if (typeof data === "string") {
     try { data = JSON.parse(data); } catch (e) {}
   }
@@ -224,3 +230,31 @@ document.getElementById("question-input").addEventListener("keydown", (e) => {
     document.getElementById("ask-btn").click();
   }
 });
+
+function renderProfile(profile) {
+  document.getElementById("greeting").style.display = "none";
+
+  const messages = document.getElementById("messages");
+  const div = document.createElement("div");
+  div.className = "msg answer";
+
+  const title = document.createElement("div");
+  title.textContent = `Your data: ${profile.rows.toLocaleString()} rows × ${profile.columns.length} columns`;
+  div.appendChild(title);
+
+  const cols = ["Column", "Type", "Nulls", "Unique", "Min", "Max", "Mean", "Median", "Most common"];
+  const rows = profile.columns.map(c => ({
+    "Column": c.name,
+    "Type": c.type,
+    "Nulls": c.nulls,
+    "Unique": c.unique,
+    "Min": c.min,
+    "Max": c.max,
+    "Mean": c.mean,
+    "Median": c.median,
+    "Most common": c.top !== undefined ? `${c.top} (${c.top_count})` : ""
+  }));
+
+  div.appendChild(buildTable(rows, cols));
+  messages.appendChild(div);
+}

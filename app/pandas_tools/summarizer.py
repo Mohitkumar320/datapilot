@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langsmith import traceable
+import pandas as pd
 
 load_dotenv()
 llm = ChatGroq(model="openai/gpt-oss-120b", api_key=os.getenv("GROQ_API_KEY"))
@@ -16,10 +17,13 @@ def generate_summary(question: str, history: list) -> str:
     for i, turn in enumerate(history, start=1):
         findings_text += f"\nFinding {i} — Question: {turn['question']}\n"
         if turn.get("data") is not None:
-            findings_text += f"Result:\n{turn['data'].to_string(index=False)}\n"
+            data = turn["data"]
+            if isinstance(data, pd.DataFrame):
+                findings_text += f"Result:\n{data.to_string(index=False)}\n"
+            else:
+                findings_text += f"Result:\n{data}\n"
         else:
             findings_text += "Result: no data (this question failed or produced nothing)\n"
-
     prompt = f"""
 You are a data analysis assistant. The user has asked several questions about a dataset during this session, and now wants a summary of everything found so far.
 

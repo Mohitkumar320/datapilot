@@ -34,12 +34,18 @@ Respond with ONLY a JSON object, no other text, in this exact format:
 {{
   "steps": [
     {{
-      "operation": "groupby" or "filter" or "value_counts" or "describe" or "raw",
+      "operation": "groupby" or "filter" or "value_counts" or "describe" or "raw" or "profile" or "correlation" or "outlier",
       "column": "the main column to operate on, or null",
       "value_column": "the numeric column to aggregate (for groupby/describe), or null",
       "agg": "count" or "mean" or "sum" or "min" or "max" or null,
       "filter_column": "a SINGLE column name to filter on (string, never a list), or null",
-      "filter_value": "a SINGLE value to filter for (string/number, never a list), or null"
+      "filter_value": "a SINGLE value to filter for (string/number, never a list), or null",
+      "filter_value": "a value to filter for. Normally a SINGLE string/number. For 'is one of several values' questions (e.g. Consumer OR Corporate), use a LIST of values instead, or null",
+      "sort_order": "asc" or "desc" or null,
+      "limit": "a number, or null",
+      "limit": "a number, or null",
+      "post_op": "percent_of_total" or "ratio" or "rank" or null,
+      "ratio_column": "a second numeric column to divide value_column by, only used when post_op is 'ratio', or null"
     }}
   ],
   "needs_chart": true or false,
@@ -57,11 +63,20 @@ Operation meanings:
 - value_counts: count occurrences of each unique value in a CATEGORICAL column (e.g. how many orders per Ship Mode) — requires "column". Do NOT use on continuous numeric columns.
 - describe: summary statistics (mean, min, max, std) of a NUMERIC column, use this for questions about "distribution", "spread", "range", or "average/typical value" of a number — requires value_column
 - raw: return the data as-is, no aggregation (used only when the user just wants to see/chart existing data)
+- profile: questions about the dataset ITSELF, not about values inside it: column names, how many rows or columns, data types, null/missing values, unique counts, or a general "describe/overview of the data" request. Use exactly ONE step with operation "profile" and every other field null. This is different from "describe" (statistics of one numeric column) and different from a conversation summary request.
+- correlation: measures how strongly two numeric columns move together (-1 to 1). Use for "correlation between X and Y", "how does X relate to Y", "how does X affect Y". Requires value_column (first numeric column) and ratio_column (second numeric column). If the question asks for this broken down by a category (e.g. "by Region"), also set "column" to that category. Use exactly ONE step with operation "correlation".
+- outlier: finds unusually high or low values in one numeric column, using a standard statistical rule. Use for "outliers", "unusual values", "anomalies" in a column. Requires value_column. Optionally set "column" to a row-identifying column (e.g. City, Order ID) so the outlier rows are recognizable. Use exactly ONE step with operation "outlier".
+- post_op (attach to the LAST step only, alongside its normal fields): after that step's result is computed, apply one more calculation.
+- "percent_of_total": convert value_column into each row's percentage share of the column's own total. Use for "what % of total X is Y" questions.
+- "ratio": divide value_column by "ratio_column", row-wise. Use for "ratio of X to Y" or "how does X compare to Y" questions. When the question asks for the "worst" or "highest" ratio and a HIGH ratio is undesirable (e.g. "worst discount-to-profit ratio" — high discount relative to profit is bad), treat "worst" as the LOWEST value, not the highest, and set sort_order accordingly. When unsure which direction "worst" means for the specific columns involved, prefer sort_order "asc" (lowest first).
+- "rank": add a rank number (1 = highest) based on value_column. Use for "rank the X by Y" questions.
+Leave post_op null for ordinary questions that just need a value or a sorted/limited list.
 
 Rules for chaining:
 - If the question needs only one operation, "steps" should contain exactly ONE step object.
 - If the question needs a filter applied before an aggregation, put the filter step FIRST, then the aggregation step.
 - If the question needs MULTIPLE filter conditions (e.g. Segment=Consumer AND Region=West), create a SEPARATE filter step for EACH condition, chained one after another — never combine multiple columns/values into a single step using lists.
+- If the question asks for the "top N", "bottom N", "highest N", "lowest N", or similar (e.g. "top 10 cities by Sales"), add "sort_order" and "limit" to the LAST step in the plan (the one whose result should be sorted and cut down). Use "desc" for "top"/"highest"/"most", "asc" for "bottom"/"lowest"/"least". Do not add a separate step for sorting.
   Example: "Average Sales for Consumer segment in the West region, grouped by Category" →
   steps = [
     {{"operation": "filter", "filter_column": "Segment", "filter_value": "Consumer"}},
