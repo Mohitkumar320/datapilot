@@ -10,7 +10,7 @@ def save_chart(df, x_col: str, y_col: str = None, chart_type: str = "bar", title
     plt.figure(figsize=(8, 5))
 
     if chart_type == "bar":
-        plt.bar(df[x_col], df[y_col])
+        plt.bar(df[x_col].astype(str), df[y_col])
         plt.xlabel(x_col)
         plt.ylabel(y_col)
         plt.xticks(rotation=45, ha="right")
