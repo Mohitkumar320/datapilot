@@ -2,7 +2,7 @@
 
 **A natural-language data analysis agent — ask questions in plain English, get answers over your own CSV files or any SQL database, with charts generated automatically.**
 
-<!-- TODO: embed demo video here -->
+https://github.com/user-attachments/assets/c4de7464-2680-4166-a2d9-ff400cf4466d
 
 ## Tech Stack
 
